@@ -91,7 +91,7 @@ func round(d *digest, x []uint64, variant rune) []uint64 {
 			printUintSlice(x)
 		}
 	}
-	
+
 	return x
 }
 

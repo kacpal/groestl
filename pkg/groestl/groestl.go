@@ -83,7 +83,7 @@ func (d *digest) BlockSize() int {
 
 func (d *digest) Write(p []byte) (n int, err error) {
 	// equivalent to Update from reference implementation
-	
+
 	n = len(p)
 	if d.nbuf > 0 {
 		nn := copy(d.buf[d.nbuf:], p)
@@ -150,4 +150,3 @@ func Sum512(data []byte) []byte {
 	d.Write(data)
 	return d.checkSum()
 }
-

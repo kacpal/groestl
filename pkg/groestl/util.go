@@ -10,7 +10,7 @@ func PrintHash(hash []byte) {
 }
 
 func pickRow(col uint64, i int) byte {
-	return byte((col >> (8*(7-i))) & 0xFF)
+	return byte((col >> (8 * (7 - i))) & 0xFF)
 }
 
 func printUintSlice(x []uint64) {

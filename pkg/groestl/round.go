@@ -158,6 +158,38 @@ func shiftBytes(x []uint64, variant rune) []uint64 {
 }
 
 func mixBytes(x []uint64) []uint64 {
-	// TODO
-	return nil
+	if VERBOSE {
+		fmt.Println("mixBytes: before")
+		printUintSlice(x)
+	}
+
+	// this part is tricky
+	// so here comes yet another rough translation straight from reference implementation
+
+	mul2 := func(b uint8) uint8 { return uint8((b << 1) ^ (0x1B * ((b >> 7) & 1))) }
+	mul3 := func(b uint8) uint8 { return (mul2(b) ^ (b)) }
+	mul4 := func(b uint8) uint8 { return mul2(mul2(b)) }
+	mul5 := func(b uint8) uint8 { return (mul4(b) ^ (b)) }
+	mul7 := func(b uint8) uint8 { return (mul4(b) ^ mul2(b) ^ (b)) }
+
+	var temp [8]uint8
+	for i, l := 0, len(x); i < l; i++ {
+		for j := 0; j < 8; j++ {
+			temp[j] =
+				mul2(pickRow(x[i], (j+0)%8)) ^
+					mul2(pickRow(x[i], (j+1)%8)) ^
+					mul3(pickRow(x[i], (j+2)%8)) ^
+					mul4(pickRow(x[i], (j+3)%8)) ^
+					mul5(pickRow(x[i], (j+4)%8)) ^
+					mul3(pickRow(x[i], (j+5)%8)) ^
+					mul5(pickRow(x[i], (j+6)%8)) ^
+					mul7(pickRow(x[i], (j+7)%8))
+		}
+		x[i] = binary.BigEndian.Uint64(temp[:])
+	}
+	if VERBOSE {
+		fmt.Println("mixBytes: after")
+		printUintSlice(x)
+	}
+	return x
 }

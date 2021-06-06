@@ -13,10 +13,6 @@ func buildColumns(data []byte, cols chan uint64) {
 }
 
 func (d *digest) transform(data []byte) error {
-	if VERBOSE {
-		fmt.Println("Call to transform:", data)
-	}
-
 	if (len(data) % d.BlockSize()) != 0 {
 		return fmt.Errorf("data len in transform is not a multiple of BlockSize")
 	}
@@ -35,23 +31,14 @@ func (d *digest) transform(data []byte) error {
 		}
 
 		if VERBOSE {
-			fmt.Printf("Block: %d\n", d.blocks)
-			fmt.Println("M:  ", m)
+			fmt.Println("\n========================================\n")
+			fmt.Println("Block Contents:")
 			printUintSlice(m)
-			fmt.Println("HxM:", hxm)
-			printUintSlice(hxm)
+			fmt.Println()
 		}
 
-		round(d, hxm, 'P')
-		round(d, m, 'Q')
-
-		if VERBOSE {
-			fmt.Println("after round transformations...")
-			fmt.Println("M:  ", m)
-			printUintSlice(m)
-			fmt.Println("HxM:", hxm)
-			printUintSlice(hxm)
-		}
+		hxm = round(d, hxm, 'P')
+		m = round(d, m, 'Q')
 
 		for i := 0; i < d.columns; i++ {
 			d.chaining[i] ^= hxm[i] ^ m[i]
@@ -60,14 +47,23 @@ func (d *digest) transform(data []byte) error {
 		d.blocks += 1
 
 		if VERBOSE {
-			fmt.Println(d)
+			fmt.Println("P(h+m) + Q(m) + h =")
+			printUintSlice(d.chaining[:d.columns])
+			fmt.Println()
 		}
 	}
 
 	return nil
 }
 
-func round(d *digest, x []uint64, variant rune) {
+func round(d *digest, x []uint64, variant rune) []uint64 {
+	if VERBOSE {
+		fmt.Println(":: BEGIN " + string(variant))
+		defer fmt.Println(":: END " + string(variant) + "\n")
+		fmt.Println("Input:")
+		printUintSlice(x)
+	}
+
 	if d.BlockSize() == 64 {
 		// for smaller blocksize change variant to lowercase letter
 		variant += 0x20
@@ -75,17 +71,31 @@ func round(d *digest, x []uint64, variant rune) {
 
 	for i := 0; i < d.rounds; i++ {
 		x = addRoundConstant(x, i, variant)
+		if VERBOSE {
+			fmt.Printf("t=%d (AddRoundConstant):\n", i)
+			printUintSlice(x)
+		}
 		x = subBytes(x)
+		if VERBOSE {
+			fmt.Printf("t=%d (SubBytes):\n", i)
+			printUintSlice(x)
+		}
 		x = shiftBytes(x, variant)
+		if VERBOSE {
+			fmt.Printf("t=%d (ShiftBytes):\n", i)
+			printUintSlice(x)
+		}
 		x = mixBytes(x)
+		if VERBOSE {
+			fmt.Printf("t=%d (MixBytes):\n", i)
+			printUintSlice(x)
+		}
 	}
+	
+	return x
 }
 
 func addRoundConstant(x []uint64, r int, variant rune) []uint64 {
-	if VERBOSE {
-		fmt.Println("addRoundConstant: before")
-		printUintSlice(x)
-	}
 	switch variant {
 	case 'P', 'p':
 		for i, l := 0, len(x); i < l; i++ {
@@ -99,18 +109,10 @@ func addRoundConstant(x []uint64, r int, variant rune) []uint64 {
 			x[i] ^= ^uint64(0) ^ uint64((i<<4)^r)
 		}
 	}
-	if VERBOSE {
-		fmt.Println("addRoundConstant: after")
-		printUintSlice(x)
-	}
 	return x
 }
 
 func subBytes(x []uint64) []uint64 {
-	if VERBOSE {
-		fmt.Println("subBytes: before")
-		printUintSlice(x)
-	}
 	var newCol [8]byte
 	for i, l := 0, len(x); i < l; i++ {
 		for j := 0; j < 8; j++ {
@@ -118,18 +120,10 @@ func subBytes(x []uint64) []uint64 {
 		}
 		x[i] = binary.BigEndian.Uint64(newCol[:])
 	}
-	if VERBOSE {
-		fmt.Println("subBytes: after")
-		printUintSlice(x)
-	}
 	return x
 }
 
 func shiftBytes(x []uint64, variant rune) []uint64 {
-	if VERBOSE {
-		fmt.Println("shiftBytes: before")
-		printUintSlice(x)
-	}
 	var shiftVector [8]int
 	switch variant {
 	case 'p':
@@ -150,19 +144,10 @@ func shiftBytes(x []uint64, variant rune) []uint64 {
 			ret[i] ^= uint64(pickRow(x[(i+shiftVector[j])%l], j))
 		}
 	}
-	if VERBOSE {
-		fmt.Println("shiftBytes: after")
-		printUintSlice(ret)
-	}
 	return ret
 }
 
 func mixBytes(x []uint64) []uint64 {
-	if VERBOSE {
-		fmt.Println("mixBytes: before")
-		printUintSlice(x)
-	}
-
 	// this part is tricky
 	// so here comes yet another rough translation straight from reference implementation
 
@@ -186,10 +171,6 @@ func mixBytes(x []uint64) []uint64 {
 					mul7(pickRow(x[i], (j+7)%8))
 		}
 		x[i] = binary.BigEndian.Uint64(temp[:])
-	}
-	if VERBOSE {
-		fmt.Println("mixBytes: after")
-		printUintSlice(x)
 	}
 	return x
 }

@@ -1,10 +1,11 @@
 package groestl
 
 import (
+	"encoding/binary"
 	"hash"
 )
 
-const VERBOSE = true
+const VERBOSE = false
 
 type digest struct {
 	hashbitlen int
@@ -89,7 +90,7 @@ func (d *digest) Write(p []byte) (n int, err error) {
 		nn := copy(d.buf[d.nbuf:], p)
 		d.nbuf += nn
 		if d.nbuf == d.BlockSize() {
-			err = d.transform(d.buf[:])
+			err = d.transform(d.buf[:d.BlockSize()])
 			if err != nil {
 				panic(err)
 			}
@@ -119,12 +120,34 @@ func (d *digest) Sum(in []byte) []byte {
 
 func (d *digest) checkSum() []byte {
 	// equivalent to Final from reference implementation
-	// TODO
+
+	bs := d.BlockSize()
+	var tmp [128]byte
+	tmp[0] = 0x80
+
+	if d.nbuf > (bs - 8) {
+		d.Write(tmp[:(bs - d.nbuf)])
+		d.Write(tmp[8:bs])
+	} else {
+		d.Write(tmp[0:(bs - d.nbuf - 8)])
+	}
+
+	binary.BigEndian.PutUint64(tmp[:], d.blocks+1)
+	d.Write(tmp[:8])
+
+	if d.nbuf != 0 {
+		panic("padding failed")
+	}
+
+	d.finalTransform()
 
 	// store chaining in output byteslice
-	// TODO
+	hash := make([]byte, d.hashbitlen/8)
+	for i := 0; i < d.columns/2; i++ {
+		binary.BigEndian.PutUint64(hash[(i*8):(i+1)*8], d.chaining[i+(d.columns/2)])
+	}
 
-	return nil
+	return hash
 }
 
 func Sum224(data []byte) []byte {

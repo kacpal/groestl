@@ -56,6 +56,33 @@ func (d *digest) transform(data []byte) error {
 	return nil
 }
 
+func (d *digest) finalTransform() {
+	h := make([]uint64, d.columns)
+
+	for i := 0; i < d.columns; i++ {
+		h[i] = d.chaining[i]
+	}
+
+	if VERBOSE {
+		fmt.Println("\n========================================\n")
+		fmt.Println("Output transformation:\n")
+	}
+
+	h = round(d, h, 'P')
+
+	for i := 0; i < d.columns; i++ {
+		d.chaining[i] ^= h[i]
+	}
+
+	d.blocks += 1
+
+	if VERBOSE {
+		fmt.Println("P(h) + h =")
+		printUintSlice(d.chaining[:d.columns])
+		fmt.Println("\n---------------------------------------\n")
+	}
+}
+
 func round(d *digest, x []uint64, variant rune) []uint64 {
 	if VERBOSE {
 		fmt.Println(":: BEGIN " + string(variant))

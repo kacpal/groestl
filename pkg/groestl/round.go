@@ -82,6 +82,10 @@ func round(d *digest, x []uint64, variant rune) {
 }
 
 func addRoundConstant(x []uint64, r int, variant rune) []uint64 {
+	if VERBOSE {
+		fmt.Println("addRoundConstant: before")
+		printUintSlice(x)
+	}
 	switch variant {
 	case 'P', 'p':
 		for i, l := 0, len(x); i < l; i++ {
@@ -95,12 +99,30 @@ func addRoundConstant(x []uint64, r int, variant rune) []uint64 {
 			x[i] ^= ^uint64(0) ^ uint64((i<<4)^r)
 		}
 	}
+	if VERBOSE {
+		fmt.Println("addRoundConstant: after")
+		printUintSlice(x)
+	}
 	return x
 }
 
 func subBytes(x []uint64) []uint64 {
-	// TODO
-	return nil
+	if VERBOSE {
+		fmt.Println("subBytes: before")
+		printUintSlice(x)
+	}
+	var newCol [8]byte
+	for i, l := 0, len(x); i < l; i++ {
+		for j := 0; j < 8; j++ {
+			newCol[j] = sbox[pickRow(x[i], j)]
+		}
+		x[i] = binary.BigEndian.Uint64(newCol[:])
+	}
+	if VERBOSE {
+		fmt.Println("subBytes: after")
+		printUintSlice(x)
+	}
+	return x
 }
 
 func shiftBytes(x []uint64, variant rune) []uint64 {

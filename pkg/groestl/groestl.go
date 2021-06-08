@@ -142,11 +142,11 @@ func (d *digest) checkSum() []byte {
 	d.finalTransform()
 
 	// store chaining in output byteslice
-	hash := make([]byte, d.hashbitlen/8)
+	hash := make([]byte, d.columns*4)
 	for i := 0; i < d.columns/2; i++ {
 		binary.BigEndian.PutUint64(hash[(i*8):(i+1)*8], d.chaining[i+(d.columns/2)])
 	}
-
+	hash = hash[(len(hash) - d.hashbitlen/8):]
 	return hash
 }
 

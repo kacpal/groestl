@@ -8,18 +8,22 @@ import (
 	"os"
 )
 
-const Usage = `Usage:
-%s <args> <path>
-`
-
 func Execute() {
 	var sum []byte
 
 	hashlen := flag.Int("hash", 256, "output hash length")
+
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage:\n")
+		fmt.Fprintf(os.Stderr, "  %s [options] path/to/file\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Options:\n")
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
 
 	if flag.Arg(0) == "" {
-		fmt.Printf(Usage, os.Args[0])
+		flag.Usage()
 		os.Exit(1)
 	}
 
@@ -29,8 +33,12 @@ func Execute() {
 	}
 
 	switch *hashlen {
+	case 224:
+		sum = groestl.Sum224(data)
 	case 256:
 		sum = groestl.Sum256(data)
+	case 384:
+		sum = groestl.Sum384(data)
 	case 512:
 		sum = groestl.Sum512(data)
 	default:

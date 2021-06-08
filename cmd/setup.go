@@ -12,7 +12,20 @@ func Execute() {
 	var sum []byte
 
 	hashlen := flag.Int("hash", 256, "output hash length")
+
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage:\n")
+		fmt.Fprintf(os.Stderr, "  %s [options] path/to/file\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Options:\n")
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
+
+	if flag.Arg(0) == "" {
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	data, err := ioutil.ReadFile(flag.Arg(0))
 	if err != nil {
@@ -33,5 +46,5 @@ func Execute() {
 		os.Exit(1)
 	}
 
-	fmt.Println(sum)
+	groestl.PrintHash(sum)
 }

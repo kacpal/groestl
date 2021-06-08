@@ -12,6 +12,7 @@ func buildColumns(data []byte, cols chan uint64) {
 	close(cols)
 }
 
+// Performs compression function. Returns nil on success, error otherwise.
 func (d *digest) transform(data []byte) error {
 	if (len(data) % d.BlockSize()) != 0 {
 		return fmt.Errorf("data len in transform is not a multiple of BlockSize")
@@ -56,6 +57,8 @@ func (d *digest) transform(data []byte) error {
 	return nil
 }
 
+// Performs last compression. After this function, data
+// is ready for truncation.
 func (d *digest) finalTransform() {
 	h := make([]uint64, d.columns)
 
@@ -83,6 +86,9 @@ func (d *digest) finalTransform() {
 	}
 }
 
+// Performs whole set of rounds on data provided in x. Variant denotes type
+// of permutation being performed. P and Q are for groestl-512
+// and lowercase are for groestl-256
 func round(d *digest, x []uint64, variant rune) []uint64 {
 	if VERBOSE {
 		fmt.Println(":: BEGIN " + string(variant))
@@ -122,6 +128,9 @@ func round(d *digest, x []uint64, variant rune) []uint64 {
 	return x
 }
 
+// AddRoundConstant transformation for data provided in x. Variant denotes type
+// of permutation being performed. P and Q are for groestl-512
+// and lowercase are for groestl-256
 func addRoundConstant(x []uint64, r int, variant rune) []uint64 {
 	switch variant {
 	case 'P', 'p':
@@ -139,6 +148,7 @@ func addRoundConstant(x []uint64, r int, variant rune) []uint64 {
 	return x
 }
 
+// SubBytes transformation for data provided in x.
 func subBytes(x []uint64) []uint64 {
 	var newCol [8]byte
 	for i, l := 0, len(x); i < l; i++ {
@@ -150,6 +160,9 @@ func subBytes(x []uint64) []uint64 {
 	return x
 }
 
+// ShiftBytes transformation for data provided in x. Variant denotes type
+// of permutation being performed. P and Q are for groestl-512
+// and lowercase are for groestl-256
 func shiftBytes(x []uint64, variant rune) []uint64 {
 	var shiftVector [8]int
 	switch variant {
@@ -174,6 +187,7 @@ func shiftBytes(x []uint64, variant rune) []uint64 {
 	return ret
 }
 
+// MixBytes transformation for data provided in x.
 func mixBytes(x []uint64) []uint64 {
 	// this part is tricky
 	// so here comes yet another rough translation straight from reference implementation

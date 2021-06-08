@@ -1,3 +1,5 @@
+// Package groestl provides core groestl functionality. It's based on groestl's
+// implementation guide with references in C code.
 package groestl
 
 import (
@@ -5,8 +7,11 @@ import (
 	"hash"
 )
 
+// Toggle verbose output with detailed description of every algorithm's step
 const VERBOSE = false
 
+// Struct digest is being used during algorithm execution. Provides easy
+// access to all information about current state of data processing.
 type digest struct {
 	hashbitlen int
 	chaining   [16]uint64
@@ -17,9 +22,9 @@ type digest struct {
 	rounds     int
 }
 
+// Equivalent to Init from reference implementation. Initiates values
+// for digest struct, therefore determines exact type of groestl algorithm.
 func (d *digest) Reset() {
-	// equivalent to Init from reference implementation
-
 	for i, _ := range d.chaining {
 		d.chaining[i] = 0
 	}
@@ -38,6 +43,8 @@ func (d *digest) Reset() {
 	d.chaining[d.columns-1] = uint64(d.hashbitlen)
 }
 
+// Each New...() function creates new hash digest and initiates it
+// for according hash size.
 func New224() hash.Hash {
 	d := new(digest)
 	d.hashbitlen = 224
@@ -66,14 +73,18 @@ func New512() hash.Hash {
 	return d
 }
 
+// Default function for creating hash digest for 256bit groestl.
 func New() hash.Hash {
 	return New256()
 }
 
+// Return size of digest
 func (d *digest) Size() int {
 	return d.hashbitlen
 }
 
+// Return block size for digest. For hash bigger than 256 bit block
+// size is 128, otherwise it's 64.
 func (d *digest) BlockSize() int {
 	if d.hashbitlen <= 256 {
 		return 64
@@ -82,9 +93,9 @@ func (d *digest) BlockSize() int {
 	}
 }
 
+// Equivalent to Update form reference implementation. Performs processing
+// on all data except the last block that might need padding.
 func (d *digest) Write(p []byte) (n int, err error) {
-	// equivalent to Update from reference implementation
-
 	n = len(p)
 	if d.nbuf > 0 {
 		nn := copy(d.buf[d.nbuf:], p)
@@ -118,9 +129,10 @@ func (d *digest) Sum(in []byte) []byte {
 	return append(in, hash...)
 }
 
+// Equivalent to Final from reference implementation. Creates padding
+// for last block of data and performs final output transformation and trumcate.
+// Returns hash value.
 func (d *digest) checkSum() []byte {
-	// equivalent to Final from reference implementation
-
 	bs := d.BlockSize()
 	var tmp [128]byte
 	tmp[0] = 0x80
@@ -150,6 +162,7 @@ func (d *digest) checkSum() []byte {
 	return hash
 }
 
+// Each Sum...() function returns according hash value for provided data.
 func Sum224(data []byte) []byte {
 	d := New224().(*digest)
 	d.Write(data)
